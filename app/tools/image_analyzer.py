@@ -16,6 +16,10 @@ def analyze_food_image(image_path: str) -> list[dict]:
         logger.warning("[ImageAnalyzer] 傳入的圖片路徑為空")
         return []
 
+    if not os.path.exists(image_path):
+        logger.warning(f"[ImageAnalyzer] 圖片路徑不存在: '{image_path}'，自動安全降級 (Fallback) 至 Mock 模式。")
+        return _mock_analyze_food_image(image_path)
+
     # 檢查是否具備有效的 API 金鑰 (排除範本占位符)
     api_key = os.environ.get("GEMINI_API_KEY")
     is_real_mode = api_key and api_key != "your_gemini_api_key_here" and len(api_key.strip()) > 10

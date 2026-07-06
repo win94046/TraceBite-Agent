@@ -1,31 +1,22 @@
 import os
 import shutil
 import uuid
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
+from google.adk.cli.fast_api import get_fast_api_app
 from app.utils.logger import logger
 
 # 導入我們的資料庫與 Agent 函數
 from app.database.db_manager import get_today_summary, get_weekly_summary, get_today_date_str
 from app.agent import log_meal
 
-app = FastAPI(
-    title="TraceBite Agent P0 API",
-    description="飲食紀錄 Agent 系統 MVP API"
-)
-
-# CORS 中間件設定
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# 取得包含 ADK 路由的 FastAPI 應用程式
+# 因為此專案架構中 agent_directory 在 app 內，因此 agents_dir 設為 "." (即專案根目錄)
+app = get_fast_api_app(agents_dir=".", web=True)
 
 # 確保照片暫存的 uploads 目錄存在
-UPLOAD_DIR = "/Users/yukai.chen/Desktop/TraceBite-Agent/uploads"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 @app.post("/api/meals/today")
@@ -125,7 +116,15 @@ async def get_summary_week():
     logger.info(f"[API GET /api/summary/week] 回傳成功. 週平均熱量={result['weekly_average']['calories_kcal']} kcal")
     return result
 
+from app.app_utils.typing import Feedback
+
+@app.post("/feedback")
+async def collect_feedback(feedback: Feedback):
+    logger.info(f"[API POST /feedback] 接收到回饋資訊: {feedback.model_dump()}")
+    return {"status": "success", "message": "Feedback logged successfully."}
+
 # 掛載 static 靜態網頁目錄以提供前端網頁 (掛載在 '/' 位址)
-STATIC_DIR = "/Users/yukai.chen/Desktop/TraceBite-Agent/static"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

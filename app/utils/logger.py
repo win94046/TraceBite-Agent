@@ -2,7 +2,8 @@ import logging
 import os
 
 # 指定本地日誌文字檔路徑
-LOG_FILE_PATH = "/Users/yukai.chen/Desktop/TraceBite-Agent/tracebite_agent.log"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+LOG_FILE_PATH = os.path.join(BASE_DIR, "tracebite_agent.log")
 
 def setup_logger():
     logger = logging.getLogger("tracebite")
