@@ -1,2 +1,8 @@
 .venv/
 .agents/
+.env
+tracebite_agent.log
+uploads/
+.pytest_cache/
+__pycache__/
+*.pyc
