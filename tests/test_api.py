@@ -5,9 +5,8 @@ from fastapi.testclient import TestClient
 from app.fast_api_app import app
 from app.database.db_manager import mock_db
 
-# 啟用 Mock 模式 (只在環境變數未手動設定時，才預設為 true)
-if "USE_MOCK_FIRESTORE" not in os.environ:
-    os.environ["USE_MOCK_FIRESTORE"] = "true"
+# API 測試一律強制啟用 Mock 模式以維持測試隔離性與速度，避免受到本地 .env 設定污染
+os.environ["USE_MOCK_FIRESTORE"] = "true"
 
 client = TestClient(app)
 
@@ -103,3 +102,45 @@ def test_get_summary_week_api():
     assert "week_end" in res_data
     assert len(res_data["daily_totals"]) == 7
     assert res_data["weekly_average"]["calories_kcal"] > 0
+
+def test_chat_with_agent_api():
+    """
+    測試 /api/chat 對話端點與 Agent-MCP 整合
+    """
+    response = client.post(
+        "/api/chat",
+        json={"message": "我剛剛吃了排骨便當，幫我記在午餐"}
+    )
+    assert response.status_code == 200
+    res_data = response.json()
+    assert res_data["status"] == "success"
+    assert "response" in res_data
+    # 驗證回覆中包含免責聲明與寫入完成字樣
+    assert "不取代醫師或營養師建議" in res_data["response"]
+
+def test_api_upload_file_security_invalid_ext():
+    """
+    測試安全防禦：上傳不合規的副檔名，應回傳 400 Bad Request
+    """
+    bad_file = io.BytesIO(b"malicious scripts")
+    response = client.post(
+        "/api/meals/today",
+        data={"meal_type": "lunch"},
+        files={"image_file": ("exploit.sh", bad_file, "text/x-shellscript")}
+    )
+    assert response.status_code == 400
+    assert "Only JPG, JPEG, PNG, WEBP are allowed" in response.json()["detail"]
+
+def test_api_upload_file_security_invalid_mime():
+    """
+    測試安全防禦：上傳合規副檔名但 MIME 類型不合規，應回傳 400 Bad Request
+    """
+    bad_file = io.BytesIO(b"malicious scripts")
+    response = client.post(
+        "/api/meals/today",
+        data={"meal_type": "lunch"},
+        files={"image_file": ("exploit.jpg", bad_file, "text/x-shellscript")}
+    )
+    assert response.status_code == 400
+    assert "Only JPG, PNG, WEBP images are allowed" in response.json()["detail"]
+

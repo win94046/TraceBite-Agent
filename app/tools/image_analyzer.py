@@ -16,13 +16,22 @@ def analyze_food_image(image_path: str) -> list[dict]:
         logger.warning("[ImageAnalyzer] 傳入的圖片路徑為空")
         return []
 
+    use_mock = os.environ.get("USE_MOCK_FIRESTORE", "true").lower() == "true"
     if not os.path.exists(image_path):
+        if not use_mock:
+            logger.error(f"[ImageAnalyzer] 圖片路徑不存在: '{image_path}'，在真實模式下拋出錯誤。")
+            raise RuntimeError(f"圖片路徑不存在且禁止降級: {image_path}")
         logger.warning(f"[ImageAnalyzer] 圖片路徑不存在: '{image_path}'，自動安全降級 (Fallback) 至 Mock 模式。")
         return _mock_analyze_food_image(image_path)
 
     # 檢查是否具備有效的 API 金鑰 (排除範本占位符)
     api_key = os.environ.get("GEMINI_API_KEY")
     is_real_mode = api_key and api_key != "your_gemini_api_key_here" and len(api_key.strip()) > 10
+    use_mock = os.environ.get("USE_MOCK_FIRESTORE", "true").lower() == "true"
+
+    if not use_mock and not is_real_mode:
+        logger.error("[ImageAnalyzer] 啟用真實環境模式但未檢測到有效的 GEMINI_API_KEY，拋出錯誤！")
+        raise RuntimeError("USE_MOCK_FIRESTORE 為 false，但未設定有效的 GEMINI_API_KEY！")
 
     if is_real_mode:
         logger.info("[ImageAnalyzer] 檢測到真實 API Key，啟用 Gemini 視覺模型分析...")
@@ -62,8 +71,12 @@ def analyze_food_image(image_path: str) -> list[dict]:
             return detected_items
 
         except Exception as e:
-            logger.error(f"[ImageAnalyzer] 真實 AI 辨識發生錯誤: {e}，自動安全降級 (Fallback) 至 Mock 模式。")
-            return _mock_analyze_food_image(image_path)
+            if not use_mock:
+                logger.error(f"[ImageAnalyzer] 在真實環境下，Gemini API 呼叫發生不可忽視的錯誤: {e}")
+                raise RuntimeError(f"真實 AI 辨識發生錯誤且禁止降級: {e}")
+            else:
+                logger.error(f"[ImageAnalyzer] 真實 AI 辨識發生錯誤: {e}，自動安全降級 (Fallback) 至 Mock 模式。")
+                return _mock_analyze_food_image(image_path)
     else:
         logger.info("[ImageAnalyzer] 未檢測到真實 API Key，啟用本地 Mock 檔名辨識...")
         return _mock_analyze_food_image(image_path)

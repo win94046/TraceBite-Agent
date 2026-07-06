@@ -54,6 +54,7 @@ from app.utils.logger import logger
 from app.tools.image_analyzer import analyze_food_image
 from app.database.nutrition_db import estimate_nutrition
 from app.database.db_manager import save_meal_log, get_today_summary, get_weekly_summary, get_today_date_str
+from google.adk.tools.tool_context import ToolContext
 
 # 固定免責聲明
 DISCLAIMER = "此結果為一般飲食紀錄與營養估算，不取代醫師或營養師建議。"
@@ -61,6 +62,7 @@ DISCLAIMER = "此結果為一般飲食紀錄與營養估算，不取代醫師或
 def log_meal(
     image_path: str,
     meal_type: str,
+    tool_context: ToolContext = None,
     restaurant_name: str = None,
     manual_item_name: str = None,
     manual_weight_g: float = None,
@@ -72,6 +74,7 @@ def log_meal(
     Args:
         image_path: Absolute or relative path to the meal image file.
         meal_type: Type of the meal (breakfast, lunch, dinner, or snack).
+        tool_context: ADK ToolContext for accessing session state and events.
         restaurant_name: Optional name of the restaurant.
         manual_item_name: Optional food item name provided manually by user (e.g. "白飯").
         manual_weight_g: Optional weight in grams for the manual item.
@@ -84,6 +87,45 @@ def log_meal(
         f"[AgentTool: log_meal] 接收到新增紀錄請求: path='{image_path}', meal_type='{meal_type}', "
         f"restaurant='{restaurant_name}', manual_item='{manual_item_name}', manual_weight={manual_weight_g}g"
     )
+    
+    # 針對對話模式 (Chat UI) 下的虛擬檔名或不存在的圖片檔案做處理
+    if image_path and (not os.path.exists(image_path) or "input_file_" in image_path):
+        if tool_context:
+            logger.info(f"[AgentTool: log_meal] 圖片路徑 '{image_path}' 不存在，嘗試從對話歷史中提取圖片 bytes...")
+            image_bytes = None
+            mime_type = "image/jpeg"
+            
+            # 由後往前搜尋 user 訊息中的圖片
+            for event in reversed(tool_context.session.events):
+                if event.author == "user" and event.content and event.content.parts:
+                    for part in event.content.parts:
+                        inline_data = getattr(part, "inline_data", None)
+                        if inline_data:
+                            data = getattr(inline_data, "data", None)
+                            m_type = getattr(inline_data, "mime_type", None)
+                            if data and m_type and m_type.startswith("image/"):
+                                image_bytes = data
+                                mime_type = m_type
+                                break
+                    if image_bytes:
+                        break
+            
+            if image_bytes:
+                import uuid
+                ext = mime_type.split("/")[-1]
+                if ext == "jpeg":
+                    ext = "jpg"
+                saved_filename = f"chat_upload_{uuid.uuid4().hex[:8]}.{ext}"
+                saved_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "uploads", saved_filename)
+                os.makedirs(os.path.dirname(saved_path), exist_ok=True)
+                with open(saved_path, "wb") as f:
+                    f.write(image_bytes)
+                logger.info(f"[AgentTool: log_meal] 成功將對話中的圖片還原並儲存至: '{saved_path}'")
+                image_path = saved_path
+            else:
+                logger.warning("[AgentTool: log_meal] 無法從對話歷史中找到任何圖片 bytes。")
+        else:
+            logger.warning(f"[AgentTool: log_meal] 圖片路徑 '{image_path}' 不存在，但無 ToolContext 可用。")
     
     # 1. 圖片分析辨識
     detected_items_raw = analyze_food_image(image_path)
@@ -180,6 +222,89 @@ def log_meal(
     logger.info(f"[AgentTool: log_meal] 新增紀錄完成，ID: {log_id}，總熱量: {meal_log['total']['calories_kcal']} kcal")
     return meal_log
 
+def log_meal_by_text(
+    food_item_name: str,
+    meal_type: str,
+    weight_g: float = 100.0,
+    calories_kcal: float = None,
+    restaurant_name: str = None
+) -> dict:
+    """
+    Log a meal for today using text input (when no image is uploaded).
+    
+    Args:
+        food_item_name: Name of the food item (e.g. "排骨便當", "白飯").
+        meal_type: Type of the meal (breakfast, lunch, dinner, or snack).
+        weight_g: Estimated weight in grams.
+        calories_kcal: Optional total calories if user already knows the meal's calories.
+        restaurant_name: Optional name of the restaurant.
+        
+    Returns:
+        A dictionary containing the saved meal log details.
+    """
+    logger.info(
+        f"[AgentTool: log_meal_by_text] 接收到文字記錄請求: item='{food_item_name}', weight={weight_g}g, "
+        f"meal_type='{meal_type}', calories={calories_kcal} kcal"
+    )
+    
+    total_calories = 0.0
+    total_protein = 0.0
+    total_fat = 0.0
+    total_carbs = 0.0
+    
+    detected_items = []
+    
+    if calories_kcal is not None and food_item_name == "未知":
+        total_calories = calories_kcal
+    else:
+        # 使用在地估算表
+        est = estimate_nutrition(food_item_name, weight_g)
+        # 文字輸入視為使用者確認，設定較高信心度
+        est["confidence"] = 0.95
+        detected_items.append(est)
+        
+        total_calories = est["calories_kcal"]
+        total_protein = est["protein_g"]
+        total_fat = est["fat_g"]
+        total_carbs = est["carbs_g"]
+        
+    readonly_sources = [
+        {"type": "user_input", "label": "文字輸入", "value": f"{food_item_name} {weight_g}g"},
+        {"type": "nutrition_database", "label": "營養資料來源", "value": "Taiwan Food Nutrition Database"}
+    ]
+    
+    meal_log = {
+        "date": get_today_date_str(),
+        "meal_type": meal_type,
+        "restaurant_name": restaurant_name,
+        "image_uri": "", # 文字記錄不含圖片
+        "manual_inputs": {
+            "items": [{"name": food_item_name, "weight_g": weight_g}],
+            "calories_kcal": calories_kcal
+        },
+        "detected_items": detected_items,
+        "total": {
+            "calories_kcal": round(total_calories, 2),
+            "protein_g": round(total_protein, 2),
+            "fat_g": round(total_fat, 2),
+            "carbs_g": round(total_carbs, 2)
+        },
+        "readonly_sources": readonly_sources,
+        "agent_audit": {
+            "agent_name": "DietLoggerAgent",
+            "used_tools": ["estimate_nutrition", "save_meal_log"],
+            "warnings": ["熱量為估算值，實際數值可能因份量、醬料與烹調方式不同而變動。"]
+        },
+        "version": "p0"
+    }
+    
+    # 4. 寫入資料庫
+    log_id = save_meal_log("demo_user", meal_log)
+    meal_log["id"] = log_id
+    
+    logger.info(f"[AgentTool: log_meal_by_text] 新增文字紀錄完成，ID: {log_id}，總熱量: {meal_log['total']['calories_kcal']} kcal")
+    return meal_log
+
 def query_today_summary() -> dict:
     """
     Query today's total nutrition and meal list.
@@ -211,7 +336,8 @@ root_agent = Agent(
 
 請遵守以下規則：
 1. 識別使用者意圖：
-   - 當使用者想要「記錄餐點」或上傳食物照片時，請呼叫 `log_meal` 工具，傳入合適的參數（例如餐別：breakfast, lunch, dinner, 或 snack，若無指定則依據當前時間猜測，或呼叫工具後再補充說明）。
+   - 當使用者提供「食物照片」或指定「照片檔案路徑」要記錄餐點時，請呼叫 `log_meal` 工具。
+   - 當使用者以「純文字對話」要求記錄他吃了什麼（沒有提供圖片/路徑）時，請呼叫 `log_meal_by_text` 工具，傳入合適的參數（食物名稱、餐別、重量等）。若無指定餐別，依據當前時間猜測，或呼叫工具後再說明。
    - 當使用者詢問「今天吃了什麼」、「今天熱量多少」等，呼叫 `query_today_summary` 工具。
    - 當使用者詢問「本週吃得如何」、「本週熱量統計」等，呼叫 `query_weekly_summary` 工具。
 
@@ -221,7 +347,7 @@ root_agent = Agent(
    - **必須在每次回覆的最後附上這句免責聲明**：'{DISCLAIMER}'。
    - 保持語氣親切，且絕不做個人化減重或達標建議，僅陳述目前紀錄的數值。
 """,
-    tools=[log_meal, query_today_summary, query_weekly_summary],
+    tools=[log_meal, log_meal_by_text, query_today_summary, query_weekly_summary],
 )
 
 app = App(

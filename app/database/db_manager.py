@@ -37,6 +37,9 @@ def init_firebase():
         _firebase_initialized = True
         logger.info("[DBManager] Firebase Firestore 連線初始化成功。")
     except Exception as e:
+        if not use_mock:
+            logger.error(f"[DBManager] 在真實環境下，Firebase Firestore 連線失敗: {e}")
+            raise RuntimeError(f"真實 Firestore 初始化失敗且禁止降級: {e}") from e
         logger.error(f"[DBManager] Firebase Firestore 初始化失敗: {e}，自動降級至 Mock 模式。")
         os.environ["USE_MOCK_FIRESTORE"] = "true"
         _firebase_initialized = True
