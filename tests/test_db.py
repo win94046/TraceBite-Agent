@@ -3,8 +3,9 @@ import datetime
 import os
 from app.database.db_manager import save_meal_log, get_today_summary, get_weekly_summary, mock_db, get_today_date_str
 
-# 在測試執行前，設定啟用 USE_MOCK_FIRESTORE 確保不連線雲端
-os.environ["USE_MOCK_FIRESTORE"] = "true"
+# 在測試執行前，設定啟用 USE_MOCK_FIRESTORE，若環境變數中無特別指定則預設為 true 確保不連線雲端
+if "USE_MOCK_FIRESTORE" not in os.environ:
+    os.environ["USE_MOCK_FIRESTORE"] = "true"
 
 @pytest.fixture(autouse=True)
 def run_around_tests():

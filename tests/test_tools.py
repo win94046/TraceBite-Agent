@@ -38,7 +38,7 @@ def test_estimate_nutrition():
     assert res_mock["nutrition_source"]["source_type"] == "estimated"
 
 def test_analyze_food_image():
-    # 測試內含 chicken 關鍵字
+    # 測試內含 chicken 關鍵字 (由於路徑不存在，會降級至 Mock，並依據檔名進行 Mock 匹配)
     res_chicken = analyze_food_image("/path/to/chicken_lunchbox.jpg")
     foods = [item["name"] for item in res_chicken]
     assert "雞腿" in foods
@@ -49,3 +49,20 @@ def test_analyze_food_image():
     foods_default = [item["name"] for item in res_default]
     assert "白飯" in foods_default
     assert "青菜" in foods_default
+
+def test_analyze_food_image_real():
+    import os
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key or api_key == "your_gemini_api_key_here" or len(api_key.strip()) < 10:
+        pytest.skip("跳過測試：未設定有效的 GEMINI_API_KEY")
+        
+    real_image_path = "tests/mock_food.jpg"
+    if not os.path.exists(real_image_path):
+        pytest.skip(f"跳過測試：實體測試圖片不存在於 {real_image_path}")
+        
+    res = analyze_food_image(real_image_path)
+    assert isinstance(res, list)
+    for item in res:
+        assert "name" in item
+        assert "estimated_weight_g" in item
+        assert "confidence" in item
