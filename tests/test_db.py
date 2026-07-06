@@ -112,5 +112,5 @@ def test_get_weekly_summary():
     today_entry = [entry for entry in weekly["daily_totals"] if entry["date"] == today_str][0]
     assert today_entry["calories_kcal"] == 700.0
     
-    # 週平均應為今日的 1/7
-    assert weekly["weekly_average"]["calories_kcal"] == round(700.0 / 7.0, 2)
+    # 週平均應以有紀錄的天數（1天）為分母，故應等於 700.0 kcal
+    assert weekly["weekly_average"]["calories_kcal"] == 700.0

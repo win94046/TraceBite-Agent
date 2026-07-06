@@ -304,9 +304,11 @@ def get_weekly_summary(user_id: str) -> dict:
             for key in total_nutrients:
                 total_nutrients[key] += day_total.get(key, 0.0)
                 
-    # 計算本週平均值 (除以 7)
+    # 計算本週平均值 (以有紀錄的天數為分母)
+    active_days = sum(1 for day in daily_totals if day.get("calories_kcal", 0.0) > 0)
+    denominator = max(active_days, 1) # 避免除以 0
     weekly_average = {
-        key: round(total_nutrients[key] / 7.0, 2)
+        key: round(total_nutrients[key] / float(denominator), 2)
         for key in total_nutrients
     }
     

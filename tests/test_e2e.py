@@ -109,8 +109,8 @@ def test_full_user_flow_e2e():
     if is_real_mode:
         assert res_week["weekly_average"]["calories_kcal"] > 0
     else:
-        # 週日均熱量應為今日總和的 1/7 = 896 / 7 = 128 kcal
-        assert res_week["weekly_average"]["calories_kcal"] == round(896.0 / 7.0, 2)
+        # 週日均熱量應以有紀錄的天數（1天）為分母 = 896 kcal
+        assert res_week["weekly_average"]["calories_kcal"] == 896.0
         
     # 驗證日趨勢列表包含 7 天
     assert len(res_week["daily_totals"]) == 7
