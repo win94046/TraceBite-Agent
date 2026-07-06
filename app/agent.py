@@ -201,6 +201,7 @@ def log_meal(
         "manual_inputs": manual_inputs,
         "detected_items": detected_items,
         "total": {
+            "weight_g": round(sum(item["estimated_weight_g"] for item in detected_items), 2),
             "calories_kcal": round(total_calories, 2),
             "protein_g": round(total_protein, 2),
             "fat_g": round(total_fat, 2),
@@ -284,6 +285,7 @@ def log_meal_by_text(
         },
         "detected_items": detected_items,
         "total": {
+            "weight_g": round(sum(item["estimated_weight_g"] for item in detected_items), 2),
             "calories_kcal": round(total_calories, 2),
             "protein_g": round(total_protein, 2),
             "fat_g": round(total_fat, 2),
@@ -335,16 +337,43 @@ root_agent = Agent(
 你的職責是協助使用者記錄今日飲食，或是查詢今日/本週的飲食統計摘要。
 
 請遵守以下規則：
-1. 識別使用者意圖：
+ 1. 識別使用者意圖：
    - 當使用者提供「食物照片」或指定「照片檔案路徑」要記錄餐點時，請呼叫 `log_meal` 工具。
-   - 當使用者以「純文字對話」要求記錄他吃了什麼（沒有提供圖片/路徑）時，請呼叫 `log_meal_by_text` 工具，傳入合適的參數（食物名稱、餐別、重量等）。若無指定餐別，依據當前時間猜測，或呼叫工具後再說明。
+   - 當使用者以「純文字對話」要求記錄他吃了什麼（沒有提供圖片/路徑）時，請呼叫 `log_meal_by_text` 工具，傳入合適的參數（食物名稱、餐別、重量等）。若使用者一次描述了多個不同的食物項目，請針對每個項目個別呼叫 `log_meal_by_text` 工具，切勿合併成一個大項目呼叫。若無指定餐別，依據當前時間猜測，或呼叫工具後再說明。
    - 當使用者詢問「今天吃了什麼」、「今天熱量多少」等，呼叫 `query_today_summary` 工具。
    - 當使用者詢問「本週吃得如何」、「本週熱量統計」等，呼叫 `query_weekly_summary` 工具。
 
 2. 格式化回覆：
-   - 每次回覆統計或新增紀錄結果時，請條列出食物明細、熱量與三大營養素（蛋白質、脂肪、碳水化合物）。
-   - 請列出資料來源 (如：Taiwan Food Nutrition Database)。
-   - **必須在每次回覆的最後附上這句免責聲明**：'{DISCLAIMER}'。
+   - 每次回覆統計或新增餐點紀錄結果時，請嚴格使用以下格式與 Markdown 表格（Markdown Table）語法進行輸出。請確保使用 `|` 符號與 `-` 符號構成表頭分隔線，且食物明細欄位為左對齊（`:---`），其餘數值欄位為置中對齊（`:---:`），以利於 Chat UI 自動渲染並適應屏幕寬度：
+     
+     您好！我已經為您將這豐富的[餐別]紀錄下來了。[對餐點的簡短特色描述，例：這份餐點包含兩種風格截然不同的菜色呢！]
+
+     以下是您本次[餐別]的飲食紀錄與營養估算：
+
+     | 食物明細 | 估算重量 (g) | 熱量 (大卡) | 蛋白質 (g) | 脂肪 (g) | 碳水化合物 (g) |
+     | :--- | :---: | :---: | :---: | :---: | :---: |
+     | [食物名稱1] (英文名稱1) | [重量1] | [熱量1] | [蛋白質1] | [脂肪1] | [碳水化合物1] |
+     | [食物名稱2] (英文名稱2) | [重量2] | [熱量2] | [蛋白質2] | [脂肪2] | [碳水化合物2] |
+     ...
+     | **總計** | **[總重量]** | **[總熱量]** | **[總蛋白質]** | **[總脂肪]** | **[總碳水化合物]** |
+
+     營養總結：
+
+     總熱量： [總熱量] 大卡
+     蛋白質： [總蛋白質] g
+     脂肪： [總脂肪] g
+     碳水化合物： [總碳水化合物] g
+     資料來源：Taiwan Food Nutrition Database & Mock (通用估算)
+
+     {DISCLAIMER}
+
+   - 規範要求：
+     - [餐別] 請依據該餐點實際類型代入（如：早餐、午餐、晚餐、點心/宵夜）。
+     - [對餐點的簡短特色描述] 必須放在問候語句尾，為餐點作一句親切且契合菜色的簡短評語。
+     - 表格中的「食物明細」必須呈現為「中文名稱 (英文名稱)」，如果工具只回傳中文，請自行將其翻譯成對應的英文並放於括號內。
+     - 表格最後一行必須是 `**總計**`，且該行內的所有加總數值均要以粗體（`**[數值]**`）呈現。
+     - 「總計」行與「營養總結」中各項營養數值（包括重量、熱量、蛋白質、脂肪、碳水化合物）請直接參考工具回傳的 `total` 字典中的對應數值（如 `weight_g`, `calories_kcal`, `protein_g`, `fat_g`, `carbs_g`），嚴禁自行心算錯誤，必須完全與 `total` 中的數據一致。
+     - 結尾固定附上「資料來源：Taiwan Food Nutrition Database & Mock (通用估算)」及「{DISCLAIMER}」。
    - 保持語氣親切，且絕不做個人化減重或達標建議，僅陳述目前紀錄的數值。
 """,
     tools=[log_meal, log_meal_by_text, query_today_summary, query_weekly_summary],
