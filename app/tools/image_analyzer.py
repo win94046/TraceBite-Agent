@@ -24,9 +24,11 @@ def analyze_food_image(image_path: str) -> list[dict]:
         logger.warning(f"[ImageAnalyzer] 圖片路徑不存在: '{image_path}'，自動安全降級 (Fallback) 至 Mock 模式。")
         return _mock_analyze_food_image(image_path)
 
-    # 檢查是否具備有效的 API 金鑰 (排除範本占位符)
+    # 檢查是否具備有效的 API 金鑰，或者環境已啟用 Vertex AI (免金鑰模式)
     api_key = os.environ.get("GEMINI_API_KEY")
-    is_real_mode = api_key and api_key != "your_gemini_api_key_here" and len(api_key.strip()) > 10
+    has_api_key = api_key and api_key != "your_gemini_api_key_here" and len(api_key.strip()) > 10
+    use_vertex = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI") == "True"
+    is_real_mode = has_api_key or use_vertex
     use_mock = os.environ.get("USE_MOCK_FIRESTORE", "true").lower() == "true"
 
     if not use_mock and not is_real_mode:
