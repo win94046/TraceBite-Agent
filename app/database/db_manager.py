@@ -18,8 +18,12 @@ def init_firebase():
         return None
         
     try:
+        import time
+        t0 = time.time()
+        # 載入 Firebase Admin SDK 套件
         import firebase_admin
         from firebase_admin import credentials, firestore
+        logger.info(f"[DBManager Debug] 載入 firebase_admin 套件耗時: {time.time() - t0:.4f}秒")
         
         if not firebase_admin._apps:
             # 如果有設定模擬器環境變數，可以使用匿名憑證
@@ -30,10 +34,30 @@ def init_firebase():
                 cred = credentials.AnonymousCredentials()
                 firebase_admin.initialize_app(cred)
             else:
+                project_id = os.environ.get("GCP_PROJECT_ID")
+                logger.info(f"[DBManager Debug] 偵測到 GCP_PROJECT_ID 環境變數: '{project_id}'")
                 logger.info("[DBManager] 嘗試初始化 Firebase Application Default Credentials...")
-                firebase_admin.initialize_app()
+                t1 = time.time()
                 
+                # 提示：明確帶入 projectId 參數可以避免 Firebase SDK 在本地端去向不存在的 GCP 內部 Metadata 伺服器探測而造成卡住
+                if project_id:
+                    firebase_admin.initialize_app(options={'projectId': project_id})
+                else:
+                    firebase_admin.initialize_app()
+                    
+                logger.info(f"[DBManager Debug] firebase_admin.initialize_app() 成功，耗時: {time.time() - t1:.4f}秒")
+                
+        t2 = time.time()
+        logger.info("[DBManager Debug] 嘗試取得 firestore.client()...")
         db_client = firestore.client()
+        logger.info(f"[DBManager Debug] 取得 firestore.client() 成功，耗時: {time.time() - t2:.4f}秒")
+
+        # 提示：在此處進行簡易讀取測試，以確定與 Firestore 的真實連線是否暢通
+        t3 = time.time()
+        logger.info("[DBManager Debug] 嘗試進行 Firestore 連線測試（列出 collections）...")
+        collections = list(db_client.collections())
+        logger.info(f"[DBManager Debug] Firestore 連線測試成功，列出 {len(collections)} 個 collection，耗時: {time.time() - t3:.4f}秒")
+        
         _firebase_initialized = True
         logger.info("[DBManager] Firebase Firestore 連線初始化成功。")
     except Exception as e:
