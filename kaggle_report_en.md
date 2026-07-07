@@ -1,5 +1,16 @@
 # TraceBite-Agent: Personal Eating and Health Concierge Agent (Capstone Project Report)
 
+## 💡 How to Test & Use (Quick Start)
+
+To experience and test the core functionalities of TraceBite-Agent, you can interact with the Agent via the Web UI using the following features:
+
+1. **Photo-based Logging**: Directly upload and send a meal photo to the Agent. The Agent will analyze the image, identify the food items, estimate their weights, and return their calories and nutritional components.
+2. **Text-based Logging**: Simply type or state the food name (e.g., "A chicken leg and a bowl of rice for lunch"). The Agent will automatically evaluate the food items and return their estimated calories and macronutrients.
+3. **Daily Nutrition Query**: Ask the Agent questions like *"How many calories and nutrients did I eat today?"*. The Agent will query your logging history in Firebase Firestore and respond with detailed statistics.
+4. **Weekly Trend Query**: Ask the Agent questions like *"What is my average daily diet and nutrition for the past week?"*. The Agent will calculate your weekly averages and retrieve statistics from the database.
+
+---
+
 ## 1. Project Vision & Problem Definition
 
 ### 1.1 Pain Points Analysis
