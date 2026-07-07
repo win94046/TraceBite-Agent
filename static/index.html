@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TraceBite Agent - 飲食紀錄助理</title>
+    <!-- 引入美學字型 Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1 id="main-title">TraceBite Agent</h1>
+            <p class="subtitle">AI 驅動的飲食紀錄與智慧營養估算助理 (P0 MVP)</p>
+        </header>
+
+        <main class="app-content">
+            <!-- 飲食上傳表單區塊 -->
+            <section class="card upload-section" id="upload-card">
+                <h2><span class="icon">📸</span> 新增飲食紀錄</h2>
+                <form id="meal-form" enctype="multipart/form-data">
+                    <div class="form-group dropzone-wrapper">
+                        <label for="image-file" class="dropzone-label">
+                            <span class="upload-icon">📤</span>
+                            <span class="upload-text">點擊或拖入食物照片 (必填)</span>
+                            <span class="filename-preview" id="filename-preview">未選擇任何檔案</span>
+                        </label>
+                        <input type="file" id="image-file" name="image_file" accept="image/*" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group half-width">
+                            <label for="meal-type">餐別 (必填)</label>
+                            <select id="meal-type" name="meal_type" required>
+                                <option value="breakfast">早餐 (Breakfast)</option>
+                                <option value="lunch" selected>午餐 (Lunch)</option>
+                                <option value="dinner">晚餐 (Dinner)</option>
+                                <option value="snack">點心/宵夜 (Snack)</option>
+                            </select>
+                        </div>
+                        <div class="form-group half-width">
+                            <label for="restaurant-name">店家/餐廳名稱 (選填)</label>
+                            <input type="text" id="restaurant-name" name="restaurant_name" placeholder="例如：台鐵便當">
+                        </div>
+                    </div>
+
+                    <!-- 進階手動輸入區 -->
+                    <div class="advanced-input-toggle" id="advanced-toggle">
+                        <span>⚙️ 展開進階手動輸入欄位 (選填)</span>
+                    </div>
+
+                    <div class="advanced-fields hidden" id="advanced-fields">
+                        <div class="form-row">
+                            <div class="form-group third-width">
+                                <label for="manual-item-name">手動輸入食物名</label>
+                                <input type="text" id="manual-item-name" name="manual_item_name" placeholder="例如：白飯">
+                            </div>
+                            <div class="form-group third-width">
+                                <label for="manual-weight-g">手動輸入重量 (g)</label>
+                                <input type="number" id="manual-weight-g" name="manual_weight_g" placeholder="例如：150" min="0" step="any">
+                            </div>
+                            <div class="form-group third-width">
+                                <label for="manual-calories-kcal">已知卡路里 (kcal)</label>
+                                <input type="number" id="manual-calories-kcal" name="manual_calories_kcal" placeholder="例如：350" min="0" step="any">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btn-submit">
+                        <span class="btn-text">送出飲食紀錄</span>
+                        <div class="spinner hidden" id="submit-spinner"></div>
+                    </button>
+                </form>
+            </section>
+
+            <!-- 數據統計區塊 -->
+            <section class="statistics-section">
+                <!-- 控制按鈕區 -->
+                <div class="tab-controls">
+                    <button class="btn-tab active" id="tab-today">今日統計</button>
+                    <button class="btn-tab" id="tab-week">本週趨勢</button>
+                </div>
+
+                <!-- 今日摘要 -->
+                <div class="tab-panel active" id="panel-today">
+                    <div class="card summary-card">
+                        <h3>今日熱量與三大營養素</h3>
+                        <div class="nutrient-grid">
+                            <div class="nutrient-box calories">
+                                <span class="val" id="today-cal">0</span>
+                                <span class="lbl">熱量 (kcal)</span>
+                            </div>
+                            <div class="nutrient-box protein">
+                                <span class="val" id="today-protein">0</span>
+                                <span class="lbl">蛋白質 (g)</span>
+                            </div>
+                            <div class="nutrient-box fat">
+                                <span class="val" id="today-fat">0</span>
+                                <span class="lbl">脂肪 (g)</span>
+                            </div>
+                            <div class="nutrient-box carbs">
+                                <span class="val" id="today-carbs">0</span>
+                                <span class="lbl">碳水 (g)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card meal-list-card">
+                        <h3>今日餐點明細</h3>
+                        <div class="meal-list" id="today-meals-list">
+                            <div class="empty-state">今天尚未新增任何飲食紀錄。</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 本週趨勢 -->
+                <div class="tab-panel" id="panel-week">
+                    <div class="card summary-card">
+                        <h3>本週每日平均攝取</h3>
+                        <div class="nutrient-grid">
+                            <div class="nutrient-box calories">
+                                <span class="val" id="week-cal-avg">0</span>
+                                <span class="lbl">日均熱量 (kcal)</span>
+                            </div>
+                            <div class="nutrient-box protein">
+                                <span class="val" id="week-protein-avg">0</span>
+                                <span class="lbl">日均蛋白質 (g)</span>
+                            </div>
+                            <div class="nutrient-box fat">
+                                <span class="val" id="week-fat-avg">0</span>
+                                <span class="lbl">日均脂肪 (g)</span>
+                            </div>
+                            <div class="nutrient-box carbs">
+                                <span class="val" id="week-carbs-avg">0</span>
+                                <span class="lbl">日均碳水 (g)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card weekly-chart-card">
+                        <h3>本週每日熱量趨勢</h3>
+                        <div class="weekly-bar-chart" id="weekly-chart">
+                            <!-- 由 JS 動態產生柱狀圖 -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p id="disclaimer-text">此結果為一般飲食紀錄與營養估算，不取代醫師或營養師建議。</p>
+            <p class="copyright">&copy; 2026 TraceBite Agent. Powered by Google ADK.</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

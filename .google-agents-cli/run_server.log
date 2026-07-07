@@ -1,0 +1,36 @@
+   Building tracebite @ file:///C:/Users/User/Desktop/TraceBite-Agent
+      Built tracebite @ file:///C:/Users/User/Desktop/TraceBite-Agent
+Uninstalled 1 package in 7ms
+Installed 4 packages in 30ms
+WARNING: The --reload flag is not supported on Windows because it forces Uvicorn to use SelectorEventLoop, which does not support subprocesses (needed for executing tools). Forcing --no-reload.
+2026-07-06 22:06:58,001 - INFO - service_factory.py:266 - Using in-memory memory service
+2026-07-06 22:06:58,001 - INFO - local_storage.py:88 - Using per-agent session storage rooted at C:\Users\User\Desktop\TraceBite-Agent
+2026-07-06 22:06:58,002 - INFO - local_storage.py:120 - Using per-agent artifact storage rooted at C:\Users\User\Desktop\TraceBite-Agent
+C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\google\adk\cli\fast_api.py:553: UserWarning: [EXPERIMENTAL] InMemoryCredentialService: This feature is experimental and may change or be removed in future versions without notice. It may introduce breaking changes at any time.
+  credential_service = InMemoryCredentialService()
+C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\google\adk\auth\credential_service\in_memory_credential_service.py:33: UserWarning: [EXPERIMENTAL] BaseCredentialService: This feature is experimental and may change or be removed in future versions without notice. It may introduce breaking changes at any time.
+  super().__init__()
+INFO:     Started server process [4196]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:18080 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60154 - "GET / HTTP/1.1" 404 Not Found
+2026-07-06 22:06:58,756 - INFO - agent_change_handler.py:43 - Change detected in agents directory: C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\google\adk\sessions\sqlite_session_service.py
+2026-07-06 22:06:58,794 - INFO - agent_change_handler.py:43 - Change detected in agents directory: C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\aiosqlite\__init__.py
+2026-07-06 22:06:58,804 - INFO - agent_change_handler.py:43 - Change detected in agents directory: C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\aiosqlite\__version__.py
+2026-07-06 22:06:58,817 - INFO - agent_change_handler.py:43 - Change detected in agents directory: C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\aiosqlite\core.py
+2026-07-06 22:06:58,826 - INFO - agent_change_handler.py:43 - Change detected in agents directory: C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\aiosqlite\context.py
+2026-07-06 22:06:58,837 - INFO - agent_change_handler.py:43 - Change detected in agents directory: C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\aiosqlite\cursor.py
+2026-07-06 22:06:58,839 - INFO - local_storage.py:64 - Creating local session service at C:\Users\User\Desktop\TraceBite-Agent\app\.adk\session.db
+2026-07-06 22:06:58,859 - INFO - api_server.py:860 - New session created: 9f9488a4-d33a-465d-b1d6-f5d26883873f
+INFO:     127.0.0.1:60155 - "POST /apps/app/users/cli-user/sessions HTTP/1.1" 200 OK
+2026-07-06 22:06:58,864 - INFO - envs.py:83 - Loaded .env file for app at C:\Users\User\Desktop\TraceBite-Agent\.env
+2026-07-06 22:06:58,866 - INFO - envs.py:83 - Loaded .env file for app at C:\Users\User\Desktop\TraceBite-Agent\.env
+2026-07-06 22:07:00,607 - INFO - agent_change_handler.py:43 - Change detected in agents directory: C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\google\adk\utils\_telemetry_context.py
+[Warning] Failed to initialize file logger: [WinError 5] ¦s¨ú³Q©Ú¡C: '/Users/yukai.chen'
+INFO:     127.0.0.1:60156 - "POST /run_sse HTTP/1.1" 200 OK
+C:\Users\User\Desktop\TraceBite-Agent\.venv\Lib\site-packages\google\adk\tools\function_tool.py:95: UserWarning: [EXPERIMENTAL] feature FeatureName.JSON_SCHEMA_FOR_FUNC_DECL is enabled.
+  build_function_declaration(
+2026-07-06 22:07:00,689 - INFO - _api_client.py:721 - The project/location from the environment variables will take precedence over the API key from the environment variables.
+2026-07-06 22:07:01,278 - INFO - google_llm.py:210 - Sending out request, model: gemini-flash-latest, backend: GoogleLLMVariant.VERTEX_AI, stream: False
+2026-07-06 22:07:06,078 - INFO - google_llm.py:279 - Response received from the model.

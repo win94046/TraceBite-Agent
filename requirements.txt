@@ -1,0 +1,7 @@
+# TraceBite-Agent 專案套件依賴檔案
+# 
+# 您可以使用 pip 安裝此檔案中的所有套件：
+# pip install -r requirements.txt
+#
+# 請在下方加入您的專案套件，例如：
+# requests>=2.31.0

@@ -1,0 +1,12 @@
+.venv/
+.agents/
+.env
+tracebite_agent.log
+uploads/
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# ADK local cache/session db
+.adk/
+app/.adk/
